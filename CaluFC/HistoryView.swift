@@ -7,84 +7,101 @@ struct HistoryView: View {
     @State private var calorieData: [DailyCalories] = []
     @State private var weeklyNutrients = WeeklyNutrients.empty
     @State private var isLoading = true
+    @State private var profile = UserProfile()
+    
+    private var periodSelector: some View {
+        Picker("期間", selection: $selectedPeriod) {
+            ForEach(TimePeriod.allCases, id: \.self) { period in
+                Text(period.displayName)
+            }
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal)
+    }
+    
+    private var calorieChartSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("カロリー摂取量")
+                .font(.title3)
+                .fontWeight(.medium)
+                .foregroundColor(.black)
+                .padding(.horizontal)
+            
+            Chart(calorieData) { data in
+                BarMark(
+                    x: .value("Day", data.date, unit: .day),
+                    y: .value("Calories", data.calories)
+                )
+                .foregroundStyle(data.calories > 2000 ? Color.red : Color.primary)
+            }
+            .frame(height: 200)
+            .padding(.horizontal)
+            
+            // Average Stats
+            HStack(spacing: 40) {
+                StatCard(title: "1日平均", value: String(averageCalories), unit: "kcal")
+                StatCard(title: "目標", value: "2,000", unit: "kcal")
+                StatCard(title: "達成率", value: String(successRate), unit: "%")
+            }
+            .padding(.horizontal)
+        }
+        .padding(.vertical)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal)
+    }
+    
+    private var nutrientBreakdownSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(getNutrientTitle())
+                .font(.title3)
+                .fontWeight(.medium)
+                .foregroundColor(.black)
+                .padding(.horizontal)
+            
+            VStack(spacing: 8) {
+                HistoryNutrientRow(name: "たんぱく質", value: Double(weeklyNutrients.protein), unit: "g")
+                HistoryNutrientRow(name: "炭水化物", value: Double(weeklyNutrients.carbohydrates), unit: "g")
+                HistoryNutrientRow(name: "脂質", value: Double(weeklyNutrients.fat), unit: "g")
+                HistoryNutrientRow(name: "食物繊維", value: Double(weeklyNutrients.fiber), unit: "g")
+                HistoryNutrientRow(name: "糖質", value: Double(weeklyNutrients.sugar), unit: "g")
+                HistoryNutrientRow(name: "ナトリウム", value: Double(weeklyNutrients.sodium), unit: "mg")
+                HistoryNutrientRow(name: "カルシウム", value: Double(weeklyNutrients.calcium), unit: "mg")
+                HistoryNutrientRow(name: "鉄分", value: Double(weeklyNutrients.iron), unit: "mg")
+                HistoryNutrientRow(name: "ビタミンA", value: Double(weeklyNutrients.vitaminA), unit: "μg")
+                HistoryNutrientRow(name: "ビタミンC", value: Double(weeklyNutrients.vitaminC), unit: "mg")
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal)
+    }
+    
+    private var nutritionLimitsSection: some View {
+        NutritionLimitsView(
+            weeklyNutrients: weeklyNutrients,
+            profile: profile
+        )
+        .padding(.horizontal)
+    }
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Period Selector
-                    Picker("期間", selection: $selectedPeriod) {
-                        ForEach(TimePeriod.allCases, id: \.self) { period in
-                            Text(period.displayName)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    
-                    // Calorie Chart
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("カロリー摂取量")
-                            .font(.title3)
-                            .fontWeight(.medium)
-                            .foregroundColor(.black)
-                            .padding(.horizontal)
-                        
-                        Chart(calorieData) { data in
-                            BarMark(
-                                x: .value("Day", data.date, unit: .day),
-                                y: .value("Calories", data.calories)
-                            )
-                            .foregroundStyle(data.calories > 2000 ? Color.red : Color.primary)
-                        }
-                        .frame(height: 200)
-                        .padding(.horizontal)
-                        
-                        // Average Stats
-                        HStack(spacing: 40) {
-                            StatCard(title: "1日平均", value: String(averageCalories), unit: "kcal")
-                            StatCard(title: "目標", value: "2,000", unit: "kcal")
-                            StatCard(title: "達成率", value: String(successRate), unit: "%")
-                        }
-                        .padding(.horizontal)
-                    }
-                    .padding(.vertical)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .padding(.horizontal)
-                    
-                    // Nutrient Breakdown
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(getNutrientTitle())
-                            .font(.title3)
-                            .fontWeight(.medium)
-                            .foregroundColor(.black)
-                            .padding(.horizontal)
-                        
-                        VStack(spacing: 8) {
-                            HistoryNutrientRow(name: "たんぱく質", value: weeklyNutrients.protein, unit: "g")
-                            HistoryNutrientRow(name: "炭水化物", value: weeklyNutrients.carbohydrates, unit: "g")
-                            HistoryNutrientRow(name: "脂質", value: weeklyNutrients.fat, unit: "g")
-                            HistoryNutrientRow(name: "食物繊維", value: weeklyNutrients.fiber, unit: "g")
-                            HistoryNutrientRow(name: "糖質", value: weeklyNutrients.sugar, unit: "g")
-                            HistoryNutrientRow(name: "ナトリウム", value: weeklyNutrients.sodium, unit: "mg")
-                            HistoryNutrientRow(name: "カルシウム", value: weeklyNutrients.calcium, unit: "mg")
-                            HistoryNutrientRow(name: "鉄分", value: weeklyNutrients.iron, unit: "mg")
-                            HistoryNutrientRow(name: "ビタミンA", value: weeklyNutrients.vitaminA, unit: "μg")
-                            HistoryNutrientRow(name: "ビタミンC", value: weeklyNutrients.vitaminC, unit: "mg")
-                        }
-                    }
-                    .padding()
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .padding(.horizontal)
+                    periodSelector
+                    calorieChartSection
+                    nutrientBreakdownSection
+                    nutritionLimitsSection
                 }
                 .padding(.vertical)
             }
@@ -96,6 +113,7 @@ struct HistoryView: View {
             .onAppear {
                 Task {
                     await loadHistoryData()
+                    await loadProfile()
                 }
             }
             .onChange(of: selectedPeriod) { _, _ in
@@ -265,6 +283,44 @@ struct HistoryView: View {
         case .year: return "年間栄養素平均"
         }
     }
+    
+    // MARK: - Profile Loading
+    
+    private func loadProfile() async {
+        do {
+            guard appleSignInManager.isSignedIn else {
+                print("⚠️ [HistoryView] User not signed in, using default profile")
+                return
+            }
+            
+            let userId = appleSignInManager.getCurrentUserId()
+            if let profileRecord = try await SupabaseManager.shared.fetchUserProfile(for: userId) {
+                DispatchQueue.main.async {
+                    self.profile = UserProfile(
+                        name: profileRecord.name,
+                        age: profileRecord.age,
+                        gender: profileRecord.gender == "Male" ? "男性" : "女性",
+                        weight: profileRecord.weight,
+                        height: profileRecord.height,
+                        activityLevel: mapActivityLevel(profileRecord.activityLevel),
+                        dailyCalorieGoal: profileRecord.dailyCalorieGoal
+                    )
+                    print("✅ [HistoryView] Profile loaded from Supabase")
+                }
+            }
+        } catch {
+            print("❌ [HistoryView] Failed to load profile: \(error)")
+        }
+    }
+    
+    private func mapActivityLevel(_ activityLevel: String) -> String {
+        switch activityLevel {
+        case "Sedentary", "Lightly Active": return "low"
+        case "Moderately Active": return "moderate"
+        case "Very Active", "Extra Active": return "high"
+        default: return "moderate"
+        }
+    }
 }
 
 struct StatCard: View {
@@ -290,7 +346,7 @@ struct StatCard: View {
 
 struct HistoryNutrientRow: View {
     let name: String
-    let value: Int
+    let value: Double
     let unit: String
     
     var body: some View {
@@ -301,7 +357,7 @@ struct HistoryNutrientRow: View {
             
             Spacer()
             
-            Text("\(value)\(unit)")
+            Text("\(Int(value))\(unit)")
                 .font(.callout)
                 .fontWeight(.medium)
                 .foregroundColor(.gray)

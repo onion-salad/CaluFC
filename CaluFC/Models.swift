@@ -55,27 +55,51 @@ struct Nutrients {
     }
 }
 
-struct UserProfile {
+struct UserProfile: Equatable {
     let id: UUID
     var name: String
     var age: Int
     var weight: Double // kg
     var height: Double // cm
-    var gender: Gender
-    var activityLevel: ActivityLevel
+    var gender: String // "男性" or "女性"
+    var activityLevel: String // "low", "moderate", "high"
     var dailyCalorieGoal: Int
     
+    // デフォルト値を提供するイニシャライザ
+    init(name: String = "", age: Int = 25, gender: String = "男性", weight: Double = 60, height: Double = 165, activityLevel: String = "moderate", dailyCalorieGoal: Int = 2000) {
+        self.id = UUID()
+        self.name = name
+        self.age = age
+        self.gender = gender
+        self.weight = weight
+        self.height = height
+        self.activityLevel = activityLevel
+        self.dailyCalorieGoal = dailyCalorieGoal
+    }
+    
     enum Gender: String, CaseIterable {
-        case male = "Male"
-        case female = "Female"
-        case other = "Other"
+        case male = "男性"
+        case female = "女性"
+        
+        var english: String {
+            switch self {
+            case .male: return "male"
+            case .female: return "female"
+            }
+        }
     }
     
     enum ActivityLevel: String, CaseIterable {
-        case sedentary = "Sedentary"
-        case lightlyActive = "Lightly Active"
-        case moderatelyActive = "Moderately Active"
-        case veryActive = "Very Active"
-        case extraActive = "Extra Active"
+        case low = "低い（座位中心）"
+        case moderate = "普通（軽い運動あり）"
+        case high = "高い（活発な運動）"
+        
+        var key: String {
+            switch self {
+            case .low: return "low"
+            case .moderate: return "moderate"
+            case .high: return "high"
+            }
+        }
     }
 }

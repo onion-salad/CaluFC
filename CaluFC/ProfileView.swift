@@ -3,13 +3,12 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var appleSignInManager: AppleSignInManager
     @State private var profile = UserProfile(
-        id: UUID(),
         name: "User",
         age: 25,
+        gender: "男性",
         weight: 70,
         height: 175,
-        gender: .male,
-        activityLevel: .moderatelyActive,
+        activityLevel: "moderate",
         dailyCalorieGoal: 2000
     )
     @State private var isEditingGoal = false
@@ -285,13 +284,12 @@ struct ProfileView: View {
             if let profileRecord = try await SupabaseManager.shared.fetchUserProfile(for: userId) {
                 DispatchQueue.main.async {
                     self.profile = UserProfile(
-                        id: profileRecord.id,
                         name: profileRecord.name,
                         age: profileRecord.age,
+                        gender: profileRecord.gender == "Male" ? "男性" : "女性",
                         weight: profileRecord.weight,
                         height: profileRecord.height,
-                        gender: UserProfile.Gender(rawValue: profileRecord.gender) ?? .male,
-                        activityLevel: UserProfile.ActivityLevel(rawValue: profileRecord.activityLevel) ?? .moderatelyActive,
+                        activityLevel: mapActivityLevel(profileRecord.activityLevel),
                         dailyCalorieGoal: profileRecord.dailyCalorieGoal
                     )
                     self.isLoading = false
@@ -327,13 +325,12 @@ struct ProfileView: View {
             
             DispatchQueue.main.async {
                 self.profile = UserProfile(
-                    id: userId,
                     name: "User",
                     age: 25,
+                    gender: "男性",
                     weight: 70,
                     height: 175,
-                    gender: .male,
-                    activityLevel: .moderatelyActive,
+                    activityLevel: "moderate",
                     dailyCalorieGoal: 2000
                 )
                 self.isLoading = false
@@ -350,13 +347,13 @@ struct ProfileView: View {
     private func saveProfile() async {
         do {
             let profileRecord = UserProfileRecord(
-                id: profile.id,
+                id: getCurrentUserId(),
                 name: profile.name,
                 age: profile.age,
                 weight: profile.weight,
                 height: profile.height,
-                gender: profile.gender.rawValue,
-                activityLevel: profile.activityLevel.rawValue,
+                gender: profile.gender == "男性" ? "Male" : "Female",
+                activityLevel: mapActivityLevelToEnglish(profile.activityLevel),
                 dailyCalorieGoal: profile.dailyCalorieGoal,
                 createdAt: nil, // Will be ignored in upsert
                 updatedAt: ISO8601DateFormatter().string(from: Date())
@@ -373,21 +370,36 @@ struct ProfileView: View {
         return appleSignInManager.getCurrentUserId()
     }
     
-    private func getJapaneseGender(_ gender: UserProfile.Gender) -> String {
-        switch gender {
-        case .male: return "男性"
-        case .female: return "女性"
-        case .other: return "その他"
+    // MARK: - Helper Functions
+    
+    private func mapActivityLevel(_ activityLevel: String) -> String {
+        switch activityLevel {
+        case "Sedentary", "Lightly Active": return "low"
+        case "Moderately Active": return "moderate"
+        case "Very Active", "Extra Active": return "high"
+        default: return "moderate"
         }
     }
     
-    private func getJapaneseActivityLevel(_ level: UserProfile.ActivityLevel) -> String {
-        switch level {
-        case .sedentary: return "座りがち"
-        case .lightlyActive: return "軽い運動"
-        case .moderatelyActive: return "適度な運動"
-        case .veryActive: return "活発"
-        case .extraActive: return "非常に活発"
+    private func mapActivityLevelToEnglish(_ activityLevel: String) -> String {
+        switch activityLevel {
+        case "low": return "Lightly Active"
+        case "moderate": return "Moderately Active"
+        case "high": return "Very Active"
+        default: return "Moderately Active"
+        }
+    }
+    
+    private func getJapaneseGender(_ gender: String) -> String {
+        return gender // すでに日本語
+    }
+    
+    private func getJapaneseActivityLevel(_ activityLevel: String) -> String {
+        switch activityLevel {
+        case "low": return "低い（座位中心）"
+        case "moderate": return "普通（軽い運動あり）"
+        case "high": return "高い（活発な運動）"
+        default: return "普通（軽い運動あり）"
         }
     }
 }

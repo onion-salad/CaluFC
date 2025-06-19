@@ -3,13 +3,12 @@ import SwiftUI
 struct OnboardingView: View {
     @State private var currentStep = 0
     @State private var profile = UserProfile(
-        id: UUID(),
         name: "",
         age: 25,
+        gender: "男性",
         weight: 70,
         height: 170,
-        gender: .male,
-        activityLevel: .moderatelyActive,
+        activityLevel: "moderate",
         dailyCalorieGoal: 2000
     )
     @State private var showingAppleSignIn = false
@@ -119,8 +118,8 @@ struct OnboardingView: View {
         UserDefaults.standard.set(profile.age, forKey: "user_profile_age")
         UserDefaults.standard.set(profile.weight, forKey: "user_profile_weight")
         UserDefaults.standard.set(profile.height, forKey: "user_profile_height")
-        UserDefaults.standard.set(profile.gender.rawValue, forKey: "user_profile_gender")
-        UserDefaults.standard.set(profile.activityLevel.rawValue, forKey: "user_profile_activity_level")
+        UserDefaults.standard.set(profile.gender, forKey: "user_profile_gender")
+        UserDefaults.standard.set(profile.activityLevel, forKey: "user_profile_activity_level")
         UserDefaults.standard.set(profile.dailyCalorieGoal, forKey: "user_profile_daily_calorie_goal")
         
         print("✅ [OnboardingView] Initial profile saved locally")
@@ -225,9 +224,8 @@ struct BasicInfoStepView: View {
                         .fontWeight(.medium)
                         .foregroundColor(.black)
                     Picker("性別", selection: $profile.gender) {
-                        Text("男性").tag(UserProfile.Gender.male)
-                        Text("女性").tag(UserProfile.Gender.female)
-                        Text("その他").tag(UserProfile.Gender.other)
+                        Text("男性").tag("男性")
+                        Text("女性").tag("女性")
                     }
                     .pickerStyle(.segmented)
                 }
@@ -294,11 +292,9 @@ struct PhysicalInfoStepView: View {
                         .fontWeight(.medium)
                         .foregroundColor(.black)
                     Picker("運動レベル", selection: $profile.activityLevel) {
-                        Text("運動なし").tag(UserProfile.ActivityLevel.sedentary)
-                        Text("軽い運動").tag(UserProfile.ActivityLevel.lightlyActive)
-                        Text("適度な運動").tag(UserProfile.ActivityLevel.moderatelyActive)
-                        Text("激しい運動").tag(UserProfile.ActivityLevel.veryActive)
-                        Text("非常に激しい運動").tag(UserProfile.ActivityLevel.extraActive)
+                        Text("低い（座位中心）").tag("low")
+                        Text("普通（軽い運動あり）").tag("moderate")
+                        Text("高い（活発な運動）").tag("high")
                     }
                     .pickerStyle(.menu)
                 }
@@ -311,24 +307,16 @@ struct GoalsStepView: View {
     @Binding var profile: UserProfile
     
     var calculatedCalories: Int {
-        // Basic BMR calculation using Mifflin-St Jeor Equation
-        let bmr: Double
-        if profile.gender == .male {
-            bmr = 88.362 + (13.397 * profile.weight) + (4.799 * profile.height) - (5.677 * Double(profile.age))
-        } else {
-            bmr = 447.593 + (9.247 * profile.weight) + (3.098 * profile.height) - (4.330 * Double(profile.age))
-        }
-        
-        let activityMultiplier: Double
-        switch profile.activityLevel {
-        case .sedentary: activityMultiplier = 1.2
-        case .lightlyActive: activityMultiplier = 1.375
-        case .moderatelyActive: activityMultiplier = 1.55
-        case .veryActive: activityMultiplier = 1.725
-        case .extraActive: activityMultiplier = 1.9
-        }
-        
-        return Int(bmr * activityMultiplier)
+        // NutritionCalculatorを使用
+        let activityLevel = NutritionCalculator.ActivityLevel(rawValue: profile.activityLevel) ?? .moderate
+        let dailyCalories = NutritionCalculator.calculateDailyCalories(
+            age: profile.age,
+            gender: profile.gender,
+            weight: profile.weight,
+            height: profile.height,
+            activityLevel: activityLevel
+        )
+        return Int(dailyCalories)
     }
     
     var body: some View {
